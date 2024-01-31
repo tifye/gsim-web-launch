@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/Tifufu/gsim-web-launch/cmd/registry"
@@ -20,15 +21,28 @@ var rootCmd = &cobra.Command{
 	Short: "",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		gspZipPath := `D:\Projects\_work\_pocs\gsim-web-launch\_vendor\GSP_190703524.zip`
-		unzipDest := `D:\Projects\_work\_pocs\gsim-web-launch\_vendor\GSP_190703524`
-		err := pkg.Unzip(gspZipPath, unzipDest)
+		testingDir := `D:\Projects\_work\_pocs\gsim-web-launch\_vendor`
+
+		gspZipDir := filepath.Join(testingDir, "gsp_zips")
+		err := os.MkdirAll(gspZipDir, os.ModePerm)
+		if err != nil {
+			log.Fatalf("Failed to create GSP zip directory: %s", err)
+		}
+
+		gspZipPath := filepath.Join(gspZipDir, "GSP_"+serialNumber+".zip")
+		err = pkg.DownloadGSP(serialNumber, "P25", gspZipPath)
+		if err != nil {
+			log.Fatalf("Failed to download GSP: %s", err)
+		}
+
+		unzipDest := fmt.Sprintf("%s\\gsp_unzips\\GSP_%s", testingDir, serialNumber)
+		err = pkg.Unzip(gspZipPath, unzipDest)
 		if err != nil {
 			log.Fatalf("Failed to unzip GSP: %s", err)
 		}
 		log.Printf("Unzipped GSP to %s\n", unzipDest)
 
-		gspPaths, err := pkg.LocateGSPPaths(unzipDest, "190703524")
+		gspPaths, err := pkg.LocateGSPPaths(unzipDest, serialNumber)
 		if err != nil {
 			log.Fatalf("Failed to locate GSP paths: %s", err)
 		}

@@ -24,3 +24,4 @@ _vendor/
 _FSWin/
 testdata/
 readonly_settings.json
+.env
