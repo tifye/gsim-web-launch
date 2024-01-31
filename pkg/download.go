@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,7 +14,7 @@ import (
 
 func DownloadAndUnpack(url string, dest string) error {
 	client := &http.Client{
-		Timeout: time.Minute * 2,
+		Timeout: time.Minute * 5,
 	}
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -22,6 +23,8 @@ func DownloadAndUnpack(url string, dest string) error {
 	}
 	addTifAuthHeaders(req)
 
+	log.Println(url)
+	time.Sleep(5 * time.Second)
 	resp, err := client.Do(req)
 	if err != nil {
 		return err

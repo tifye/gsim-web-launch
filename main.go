@@ -31,6 +31,7 @@ func main() {
 		os.Args = append(os.Args[:1], args...)
 	}
 
+	log.Println(os.Args)
 	time.Sleep(5 * time.Second)
 	cmd.Execute(os.Args[1:])
 }

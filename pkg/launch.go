@@ -44,8 +44,8 @@ func LaunchSimulator(mapPath string) {
 	}
 }
 
-func LaunchWinMower() {
-	exePath := `D:\Projects\_work\_pocs\gsim-web-launch\_vendor\40.x_Main-App-P25-Win_master_build-240131_153656\40.x_Main-App-P25-Win_master_build-240131_153656.exe`
+func LaunchWinMower(exePath string) {
+	//exePath := `D:\Projects\_work\_pocs\gsim-web-launch\_vendor\40.x_Main-App-P25-Win_master_build-240131_153656\40.x_Main-App-P25-Win_master_build-240131_153656.exe`
 	cmd := exec.Command("cmd.exe", "/C", "start", exePath)
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: false}
 	err := cmd.Run()

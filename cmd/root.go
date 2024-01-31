@@ -15,7 +15,7 @@ import (
 var (
 	serialNumber string
 	platform     string
-	testingDir   string
+	testingDir   string = filepath.Join(`D:\Projects\_work\_pocs\gsim-web-launch\_vendor`)
 )
 
 var rootCmd = &cobra.Command{
@@ -23,6 +23,19 @@ var rootCmd = &cobra.Command{
 	Short: "",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Fatalf("Failed to launch: %s", r)
+				time.Sleep(5 * time.Second)
+			}
+			time.Sleep(5 * time.Second)
+		}()
+
+		_, err := downloadAndUnpackWinMower(platform)
+		if err != nil {
+			log.Fatalf("Failed to download and unpack WinMower: %s", err)
+		}
+
 		gspPaths, err := downloadAndUnpackGSP(serialNumber, platform)
 		if err != nil {
 			log.Fatalf("Failed to download and unpack GSP: %s", err)
@@ -30,14 +43,13 @@ var rootCmd = &cobra.Command{
 
 		log.Printf("\nMap: %s\nTestBundle: %s\n", gspPaths.Map, gspPaths.TestBundle)
 
-		fmt.Println("Launching winmower...")
-		pkg.LaunchWinMower()
-		time.Sleep(5 * time.Second)
-		fmt.Println("Launching simulator...")
-		pkg.LaunchSimulator(gspPaths.Map)
-		time.Sleep(5 * time.Second)
-		fmt.Println("Launching test bundle...")
-		pkg.RunTestBundle(gspPaths.TestBundle)
+		// fmt.Println("Launching winmower...")
+		// pkg.LaunchWinMower(winMowerPath)
+		// fmt.Println("Launching simulator...")
+		// pkg.LaunchSimulator(gspPaths.Map)
+		// time.Sleep(5 * time.Second)
+		// fmt.Println("Launching test bundle...")
+		// pkg.RunTestBundle(gspPaths.TestBundle)
 	},
 }
 
@@ -59,6 +71,47 @@ func Execute(args []string) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func downloadAndUnpackWinMower(platform string) (string, error) {
+	types, err := pkg.FetchBundleTypes()
+	if err != nil {
+		return "", err
+	}
+
+	plat := pkg.Platform(platform)
+	plat.Set(platform)
+	types = pkg.FilterBundleTypes(types, plat)
+	if len(types) == 0 {
+		return "", fmt.Errorf("no bundle types found for platform %s", platform)
+	}
+	latestType := types[0]
+
+	latestBuild, err := pkg.FetchLatestRelease(latestType.Name)
+	if err != nil {
+		return "", err
+	}
+
+	dir := filepath.Join(testingDir, "winmower", latestType.Name)
+	err = pkg.DownloadAndUnpack(latestBuild.BlobUrl, dir)
+	if err != nil {
+		return "", err
+	}
+
+	var exePath string
+	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if filepath.Ext(path) == ".exe" {
+			exePath = path
+			return nil
+		}
+		return nil
+	})
+	if exePath == "" {
+		return "", fmt.Errorf("no exe found in %s", dir)
+	}
+	log.Printf("Found WinMower exe at %s", exePath)
+
+	return exePath, err
 }
 
 func downloadAndUnpackGSP(serialNumber, platform string) (*pkg.GSPPaths, error) {
