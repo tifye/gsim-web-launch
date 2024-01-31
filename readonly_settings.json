@@ -1,0 +1,6 @@
+{
+  "tifAppBundleTypes": [
+    "TifApp",
+    "TifAppInstaller"
+  ]
+}
