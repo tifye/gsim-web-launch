@@ -15,6 +15,7 @@ import (
 var (
 	serialNumber string
 	platform     string
+	testingDir   string
 )
 
 var rootCmd = &cobra.Command{
@@ -22,30 +23,9 @@ var rootCmd = &cobra.Command{
 	Short: "",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		testingDir := `D:\Projects\_work\_pocs\gsim-web-launch\_vendor`
-
-		gspZipDir := filepath.Join(testingDir, "gsp_zips")
-		err := os.MkdirAll(gspZipDir, os.ModePerm)
+		gspPaths, err := downloadAndUnpackGSP(serialNumber, platform)
 		if err != nil {
-			log.Fatalf("Failed to create GSP zip directory: %s", err)
-		}
-
-		gspZipPath := filepath.Join(gspZipDir, "GSP_"+serialNumber+".zip")
-		err = pkg.DownloadGSP(serialNumber, platform, gspZipPath)
-		if err != nil {
-			log.Fatalf("Failed to download GSP: %s", err)
-		}
-
-		unzipDest := fmt.Sprintf("%s\\gsp_unzips\\GSP_%s", testingDir, serialNumber)
-		err = pkg.Unzip(gspZipPath, unzipDest)
-		if err != nil {
-			log.Fatalf("Failed to unzip GSP: %s", err)
-		}
-		log.Printf("Unzipped GSP to %s\n", unzipDest)
-
-		gspPaths, err := pkg.LocateGSPPaths(unzipDest, serialNumber)
-		if err != nil {
-			log.Fatalf("Failed to locate GSP paths: %s", err)
+			log.Fatalf("Failed to download and unpack GSP: %s", err)
 		}
 
 		log.Printf("\nMap: %s\nTestBundle: %s\n", gspPaths.Map, gspPaths.TestBundle)
@@ -79,4 +59,21 @@ func Execute(args []string) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func downloadAndUnpackGSP(serialNumber, platform string) (*pkg.GSPPaths, error) {
+	path := filepath.Join(testingDir, "gsp", "GSP_"+serialNumber)
+	baseUrl := os.Getenv("GSP_API")
+	endpoint := fmt.Sprintf("%s/packet/%s/%s", baseUrl, serialNumber, platform)
+	err := pkg.DownloadAndUnpack(endpoint, path)
+	if err != nil {
+		return nil, err
+	}
+
+	gsp, err := pkg.LocateGSPPaths(path, serialNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	return gsp, nil
 }

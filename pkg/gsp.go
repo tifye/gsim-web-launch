@@ -17,8 +17,6 @@ type GSPPaths struct {
 }
 
 func DownloadGSP(serialNumber, platform, dest string) error {
-	apiKey := os.Getenv("API_KEY")
-	token := os.Getenv("TOKEN")
 	baseUrl := os.Getenv("GSP_API")
 
 	url := fmt.Sprintf("%s/packet/%s/%s", baseUrl, serialNumber, platform)
@@ -27,9 +25,7 @@ func DownloadGSP(serialNumber, platform, dest string) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("x-api-key", "fuit-pie")
-	req.Header.Set("token", token)
-	req.Header.Set("Ocp-Apim-Subscription-Key", apiKey)
+	addTifAuthHeaders(req)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {

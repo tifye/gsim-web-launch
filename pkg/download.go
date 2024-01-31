@@ -4,10 +4,58 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
+
+func DownloadAndUnpack(url string, dest string) error {
+	client := &http.Client{
+		Timeout: time.Minute * 2,
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	addTifAuthHeaders(req)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode > 299 {
+		return fmt.Errorf("response failed with %s", resp.Status)
+	}
+
+	err = os.MkdirAll("./tmp/", os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	tmpFile, err := os.CreateTemp("./tmp/", "winmower_*.zip")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
+
+	_, err = io.Copy(tmpFile, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	err = Unzip(tmpFile.Name(), dest)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func Unzip(zipFile string, dest string) error {
 	archive, err := zip.OpenReader(zipFile)
