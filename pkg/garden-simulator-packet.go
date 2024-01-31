@@ -16,12 +16,12 @@ type GSPPaths struct {
 	TestBundle string
 }
 
-func DownloadGSP(serialNumber, model, dest string) error {
+func DownloadGSP(serialNumber, platform, dest string) error {
 	apiKey := os.Getenv("API_KEY")
 	token := os.Getenv("TOKEN")
 	baseUrl := os.Getenv("GSP_API")
 
-	url := fmt.Sprintf("%s/packet/%s/%s", baseUrl, serialNumber, model)
+	url := fmt.Sprintf("%s/packet/%s/%s", baseUrl, serialNumber, platform)
 	log.Printf("Downloading GSP from %s", url)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

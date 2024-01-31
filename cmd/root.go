@@ -14,6 +14,7 @@ import (
 
 var (
 	serialNumber string
+	platform     string
 )
 
 var rootCmd = &cobra.Command{
@@ -30,7 +31,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		gspZipPath := filepath.Join(gspZipDir, "GSP_"+serialNumber+".zip")
-		err = pkg.DownloadGSP(serialNumber, "P25", gspZipPath)
+		err = pkg.DownloadGSP(serialNumber, platform, gspZipPath)
 		if err != nil {
 			log.Fatalf("Failed to download GSP: %s", err)
 		}
@@ -65,6 +66,10 @@ func init() {
 	rootCmd.AddCommand(registry.RegistryCmd)
 
 	rootCmd.Flags().StringVarP(&serialNumber, "serial-number", "s", "", "Serial number of the device")
+	rootCmd.MarkFlagRequired("serial-number")
+
+	rootCmd.Flags().StringVarP(&platform, "platform", "p", "P25", "Platform of the device")
+	rootCmd.MarkFlagRequired("platform")
 }
 
 func Execute(args []string) {
