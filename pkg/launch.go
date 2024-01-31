@@ -7,11 +7,11 @@ import (
 	"syscall"
 )
 
-func RunTestBundle() {
+func RunTestBundle(bundlePath string) {
 	execPath := `C:\Users\demat\AppData\Local\TifApp\TifConsole.Auto.exe`
-	bundleZipPath := `D:\Projects\_work\_pocs\gsim-web-launch\_vendor\GSP_190703524\P25_190703524.zip`
 	args := []string{
-		bundleZipPath,
+		// `D:\Projects\_work\_pocs\gsim-web-launch\_vendor\GSP_190703524\P25_190703524.zip`,
+		bundlePath,
 		"-tcpAddress",
 		"127.0.0.1:4250",
 		"-output",
@@ -26,10 +26,11 @@ func RunTestBundle() {
 	}
 }
 
-func LaunchSimulator() {
+func LaunchSimulator(mapPath string) {
 	exePath := `D:\Projects\_work\_pocs\gsim-web-launch\_vendor\GardenSimulator\GardenSimulator.exe`
 	args := []string{
-		"-config", `D:\Projects\_work\_pocs\gsim-web-launch\_vendor\GSP_190703524\map.json`,
+		// "-config", `D:\Projects\_work\_pocs\gsim-web-launch\_vendor\GSP_190703524\map.json`,
+		"-config", mapPath,
 		"-log", "true",
 		"-time-scale", "1",
 		"-screen-width", "1280",
