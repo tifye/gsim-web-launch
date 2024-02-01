@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/Tifufu/gsim-web-launch/cmd"
 	"github.com/joho/godotenv"
@@ -32,6 +31,5 @@ func main() {
 	}
 
 	log.Println(os.Args)
-	time.Sleep(5 * time.Second)
 	cmd.Execute(os.Args[1:])
 }

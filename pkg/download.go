@@ -9,24 +9,18 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 func DownloadAndUnpack(url string, dest string) error {
-	client := &http.Client{
-		Timeout: time.Minute * 5,
-	}
-
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
 	}
 	addTifAuthHeaders(req)
 
-	log.Println(url)
-	time.Sleep(5 * time.Second)
-	resp, err := client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 	defer resp.Body.Close()
@@ -35,12 +29,7 @@ func DownloadAndUnpack(url string, dest string) error {
 		return fmt.Errorf("response failed with %s", resp.Status)
 	}
 
-	err = os.MkdirAll("./tmp/", os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	tmpFile, err := os.CreateTemp("./tmp/", "winmower_*.zip")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "winmower_*.zip")
 	if err != nil {
 		return err
 	}

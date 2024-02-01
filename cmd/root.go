@@ -23,25 +23,16 @@ var rootCmd = &cobra.Command{
 	Short: "",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Fatalf("Failed to launch: %s", r)
-				time.Sleep(5 * time.Second)
-			}
-			time.Sleep(5 * time.Second)
-		}()
-
 		_, err := downloadAndUnpackWinMower(platform)
 		if err != nil {
 			log.Fatalf("Failed to download and unpack WinMower: %s", err)
 		}
 
-		gspPaths, err := downloadAndUnpackGSP(serialNumber, platform)
-		if err != nil {
-			log.Fatalf("Failed to download and unpack GSP: %s", err)
-		}
-
-		log.Printf("\nMap: %s\nTestBundle: %s\n", gspPaths.Map, gspPaths.TestBundle)
+		// gspPaths, err := downloadAndUnpackGSP(serialNumber, platform)
+		// if err != nil {
+		// 	log.Fatalf("Failed to download and unpack GSP: %s", err)
+		// }
+		// log.Printf("\nMap: %s\nTestBundle: %s\n", gspPaths.Map, gspPaths.TestBundle)
 
 		// fmt.Println("Launching winmower...")
 		// pkg.LaunchWinMower(winMowerPath)
@@ -50,6 +41,8 @@ var rootCmd = &cobra.Command{
 		// time.Sleep(5 * time.Second)
 		// fmt.Println("Launching test bundle...")
 		// pkg.RunTestBundle(gspPaths.TestBundle)
+
+		time.Sleep(10 * time.Second)
 	},
 }
 
@@ -78,6 +71,7 @@ func downloadAndUnpackWinMower(platform string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	log.Printf("Found %d bundle types\n", len(types))
 
 	plat := pkg.Platform(platform)
 	plat.Set(platform)
@@ -85,16 +79,22 @@ func downloadAndUnpackWinMower(platform string) (string, error) {
 	if len(types) == 0 {
 		return "", fmt.Errorf("no bundle types found for platform %s", platform)
 	}
+	log.Printf("Found %d bundle types for platform %s\n", len(types), platform)
 	latestType := types[0]
+	log.Printf("Latest bundle type: %s\n", latestType.Name)
 
 	latestBuild, err := pkg.FetchLatestRelease(latestType.Name)
+	log.Printf("Latest build: %s\n", latestBuild.BlobUrl)
 	if err != nil {
 		return "", err
 	}
 
 	dir := filepath.Join(testingDir, "winmower", latestType.Name)
+	log.Printf("Downloading and unpacking WinMower to %s", dir)
 	err = pkg.DownloadAndUnpack(latestBuild.BlobUrl, dir)
+	log.Printf("Downloaded and unpacked WinMower to %s", dir)
 	if err != nil {
+		log.Printf("Failed to download and unpack WinMower: %s", err)
 		return "", err
 	}
 
