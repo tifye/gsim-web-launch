@@ -1,22 +1,33 @@
-package pkg
+package robotics
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
-type Build struct {
-	Id      string `json:"id"`
-	BlobUrl string `json:"blob"`
+type BundleType struct {
+	Id          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
-func FetchLatestRelease(bundleType string) (*Build, error) {
-	const baseUrl = "https://hqvrobotics.azure-api.net"
-	url := fmt.Sprintf("%s/bundles/indexes/%s?count=1", baseUrl, bundleType)
+func FilterBundleTypes(types []BundleType, platform Platform) []BundleType {
+	var filtered []BundleType
+	subStr := "-" + string(platform) + "-Win"
+	for _, t := range types {
+		if strings.Contains(t.Name, subStr) {
+			filtered = append(filtered, t)
+		}
+	}
+	return filtered
+}
+
+func FetchBundleTypes() ([]BundleType, error) {
+	const url = "https://hqvrobotics.azure-api.net/bundles/types"
 	client := http.Client{
 		Timeout: time.Second * 2,
 	}
@@ -25,7 +36,7 @@ func FetchLatestRelease(bundleType string) (*Build, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %v", err)
 	}
-	addTifAuthHeaders(req)
+	AddTifAuthHeaders(req)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -45,15 +56,10 @@ func FetchLatestRelease(bundleType string) (*Build, error) {
 		return nil, fmt.Errorf("error closing response body: %v", err)
 	}
 
-	var builds []Build
-	if err = json.Unmarshal(body, &builds); err != nil {
+	var bundleTypes []BundleType
+	if err = json.Unmarshal(body, &bundleTypes); err != nil {
 		return nil, fmt.Errorf("error unmarshalling response body: %v", err)
 	}
 
-	if len(builds) == 0 {
-		return nil, errors.New("no builds found")
-	}
-
-	builds[0].BlobUrl = fmt.Sprintf("%s/bundles/blob/%s", baseUrl, builds[0].BlobUrl)
-	return &builds[0], nil
+	return bundleTypes, nil
 }

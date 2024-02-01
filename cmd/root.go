@@ -9,6 +9,7 @@ import (
 
 	"github.com/Tifufu/gsim-web-launch/cmd/registry"
 	"github.com/Tifufu/gsim-web-launch/pkg"
+	"github.com/Tifufu/gsim-web-launch/pkg/robotics"
 	"github.com/spf13/cobra"
 )
 
@@ -23,26 +24,28 @@ var rootCmd = &cobra.Command{
 	Short: "",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		_, err := downloadAndUnpackWinMower(platform)
+		winMowerPath, err := downloadAndUnpackWinMower(platform)
 		if err != nil {
 			log.Fatalf("Failed to download and unpack WinMower: %s", err)
 		}
 
-		// gspPaths, err := downloadAndUnpackGSP(serialNumber, platform)
-		// if err != nil {
-		// 	log.Fatalf("Failed to download and unpack GSP: %s", err)
-		// }
-		// log.Printf("\nMap: %s\nTestBundle: %s\n", gspPaths.Map, gspPaths.TestBundle)
+		gspPaths, err := downloadAndUnpackGSP(serialNumber, platform)
+		if err != nil {
+			log.Fatalf("Failed to download and unpack GSP: %s", err)
+		}
+		log.Printf("\nMap: %s\nTestBundle: %s\n", gspPaths.Map, gspPaths.TestBundle)
 
-		// fmt.Println("Launching winmower...")
-		// pkg.LaunchWinMower(winMowerPath)
-		// fmt.Println("Launching simulator...")
-		// pkg.LaunchSimulator(gspPaths.Map)
-		// time.Sleep(5 * time.Second)
-		// fmt.Println("Launching test bundle...")
-		// pkg.RunTestBundle(gspPaths.TestBundle)
+		fmt.Println("Launching winmower...")
+		pkg.LaunchWinMower(winMowerPath, platform)
+		time.Sleep(5 * time.Second)
 
+		fmt.Println("Launching test bundle...")
+		pkg.RunTestBundle(gspPaths.TestBundle)
 		time.Sleep(10 * time.Second)
+
+		fmt.Println("Launching simulator...")
+		pkg.LaunchSimulator(gspPaths.Map)
+		time.Sleep(5 * time.Second)
 	},
 }
 
@@ -67,15 +70,15 @@ func Execute(args []string) {
 }
 
 func downloadAndUnpackWinMower(platform string) (string, error) {
-	types, err := pkg.FetchBundleTypes()
+	types, err := robotics.FetchBundleTypes()
 	if err != nil {
 		return "", err
 	}
 	log.Printf("Found %d bundle types\n", len(types))
 
-	plat := pkg.Platform(platform)
+	plat := robotics.Platform(platform)
 	plat.Set(platform)
-	types = pkg.FilterBundleTypes(types, plat)
+	types = robotics.FilterBundleTypes(types, plat)
 	if len(types) == 0 {
 		return "", fmt.Errorf("no bundle types found for platform %s", platform)
 	}
@@ -83,7 +86,7 @@ func downloadAndUnpackWinMower(platform string) (string, error) {
 	latestType := types[0]
 	log.Printf("Latest bundle type: %s\n", latestType.Name)
 
-	latestBuild, err := pkg.FetchLatestRelease(latestType.Name)
+	latestBuild, err := robotics.FetchLatestRelease(latestType.Name)
 	log.Printf("Latest build: %s\n", latestBuild.BlobUrl)
 	if err != nil {
 		return "", err
@@ -114,7 +117,7 @@ func downloadAndUnpackWinMower(platform string) (string, error) {
 	return exePath, err
 }
 
-func downloadAndUnpackGSP(serialNumber, platform string) (*pkg.GSPPaths, error) {
+func downloadAndUnpackGSP(serialNumber, platform string) (*robotics.GSPPaths, error) {
 	path := filepath.Join(testingDir, "gsp", "GSP_"+serialNumber)
 	baseUrl := os.Getenv("GSP_API")
 	endpoint := fmt.Sprintf("%s/packet/%s/%s", baseUrl, serialNumber, platform)
@@ -123,7 +126,7 @@ func downloadAndUnpackGSP(serialNumber, platform string) (*pkg.GSPPaths, error) 
 		return nil, err
 	}
 
-	gsp, err := pkg.LocateGSPPaths(path, serialNumber)
+	gsp, err := robotics.LocateGSPPaths(path, serialNumber)
 	if err != nil {
 		return nil, err
 	}

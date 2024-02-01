@@ -1,4 +1,4 @@
-package pkg
+package robotics
 
 import (
 	"errors"
@@ -25,7 +25,7 @@ func DownloadGSP(serialNumber, platform, dest string) error {
 	if err != nil {
 		return err
 	}
-	addTifAuthHeaders(req)
+	AddTifAuthHeaders(req)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {

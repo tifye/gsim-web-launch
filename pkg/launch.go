@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"syscall"
 )
 
@@ -44,11 +45,22 @@ func LaunchSimulator(mapPath string) {
 	}
 }
 
-func LaunchWinMower(exePath string) {
+func LaunchWinMower(exePath, platform string) {
+	cachedir, err := os.UserCacheDir()
+	if err != nil {
+		log.Fatalf("Failed to get user cache dir: %s", err)
+	}
+	wmDir := filepath.Join(cachedir, "winmower", platform)
+	err = os.MkdirAll(wmDir, 0755)
+	if err != nil {
+		log.Fatalf("Failed to create winmower dir: %s", err)
+	}
+
 	//exePath := `D:\Projects\_work\_pocs\gsim-web-launch\_vendor\40.x_Main-App-P25-Win_master_build-240131_153656\40.x_Main-App-P25-Win_master_build-240131_153656.exe`
 	cmd := exec.Command("cmd.exe", "/C", "start", exePath)
+	cmd.Dir = wmDir
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: false}
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		log.Fatalf("Failed to launch winmower: %s", err)
 	}
