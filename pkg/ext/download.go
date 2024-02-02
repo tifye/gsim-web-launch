@@ -20,7 +20,11 @@ func DownloadAndUnpack(req *http.Request, dest string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode > 299 {
-		return fmt.Errorf("response failed with %s", resp.Status)
+		b, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("response failed with %s", resp.Status)
+		}
+		return fmt.Errorf("response failed with %s, %s", resp.Status, string(b))
 	}
 
 	tmpFile, err := os.CreateTemp(os.TempDir(), "winmower_*.zip")

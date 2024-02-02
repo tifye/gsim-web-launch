@@ -7,4 +7,5 @@ type Cli struct {
 	TestingDir       string
 	WinMowerRegistry *robotics.WinMowerRegistry
 	BundleRegistry   *robotics.BundleRegistry
+	GSPRegistry      *robotics.GSPRegistry
 }

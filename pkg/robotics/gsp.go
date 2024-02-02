@@ -3,53 +3,51 @@ package robotics
 import (
 	"errors"
 	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/Tifufu/gsim-web-launch/pkg/ext"
 )
+
+type GSPRegistry struct {
+	cacheDir string
+	baseUrl  string
+}
 
 type GSPPaths struct {
 	Map        string
 	TestBundle string
 }
 
-func DownloadGSP(serialNumber, platform, dest string) error {
-	baseUrl := os.Getenv("GSP_API")
+func NewGSPRegistry(cacheDir, baseUrl string) *GSPRegistry {
+	return &GSPRegistry{
+		cacheDir: cacheDir,
+		baseUrl:  baseUrl,
+	}
+}
 
-	url := fmt.Sprintf("%s/packet/%s/%s", baseUrl, serialNumber, platform)
-	log.Printf("Downloading GSP from %s", url)
-	req, err := http.NewRequest("GET", url, nil)
+func (r *GSPRegistry) GetGSP(serialNumber, platform string) (*GSPPaths, error) {
+	endpoint := fmt.Sprintf("%s/packet/%s/%s", r.baseUrl, serialNumber, platform)
+	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	AddTifAuthHeaders(req)
 
-	res, err := http.DefaultClient.Do(req)
+	dir := filepath.Join(r.cacheDir, serialNumber)
+	err = ext.DownloadAndUnpack(req, dir)
 	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		log.Printf("Failed to download GSP: %s", res.Status)
-		return errors.New("Failed to download GSP")
+		return nil, err
 	}
 
-	file, err := os.Create(dest)
+	gsp, err := LocateGSPPaths(dir, serialNumber)
 	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = io.Copy(file, res.Body)
-	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return gsp, nil
 }
 
 func LocateGSPPaths(dir string, serialNumber string) (*GSPPaths, error) {
