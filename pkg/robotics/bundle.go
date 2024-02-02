@@ -47,13 +47,10 @@ func FetchBundleTypes() ([]BundleType, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %v", err)
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode > 299 {
 		return nil, fmt.Errorf("response failed with %s", resp.Status)
-	}
-
-	if err = resp.Body.Close(); err != nil {
-		return nil, fmt.Errorf("error closing response body: %v", err)
 	}
 
 	var bundleTypes []BundleType

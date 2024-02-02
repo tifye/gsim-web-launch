@@ -50,7 +50,7 @@ func LaunchWinMower(exePath, platform string) {
 	if err != nil {
 		log.Fatalf("Failed to get user cache dir: %s", err)
 	}
-	wmDir := filepath.Join(cachedir, "winmower", platform)
+	wmDir := filepath.Join(cachedir, "gsim/winmower-filesystems", platform)
 	err = os.MkdirAll(wmDir, 0755)
 	if err != nil {
 		log.Fatalf("Failed to create winmower dir: %s", err)

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -70,6 +71,24 @@ func Execute(args []string) {
 }
 
 func downloadAndUnpackWinMower(platform string) (string, error) {
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	wmrCacheDir := filepath.Join(cacheDir, "gsim/winmower")
+	err = os.MkdirAll(wmrCacheDir, 0755)
+	if err != nil {
+		return "", err
+	}
+	wmr := robotics.NewWinMowerRegistry(wmrCacheDir)
+	winMower, err := wmr.GetCachedWinMower(robotics.Platform(platform), context.Background())
+	if err != nil {
+		log.Printf("Failed to get cached WinMower: %s", err)
+	} else {
+		log.Printf("Found cached WinMower at %s", winMower.Path)
+		return winMower.Path, nil
+	}
+
 	types, err := robotics.FetchBundleTypes()
 	if err != nil {
 		return "", err
@@ -92,7 +111,8 @@ func downloadAndUnpackWinMower(platform string) (string, error) {
 		return "", err
 	}
 
-	dir := filepath.Join(testingDir, "winmower", latestType.Name)
+	// dir := filepath.Join(testingDir, "winmower", latestType.Name)
+	dir := filepath.Join(cacheDir, "gsim/winmower", plat.String())
 	log.Printf("Downloading and unpacking WinMower to %s", dir)
 	err = pkg.DownloadAndUnpack(latestBuild.BlobUrl, dir)
 	log.Printf("Downloaded and unpacked WinMower to %s", dir)
