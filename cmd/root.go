@@ -31,11 +31,8 @@ func newRootCommand(cli *cli.Cli) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			defer func() {
 				if r := recover(); r != nil {
-					log.Info("Recovered in main", r)
-					time.Sleep(15 * time.Second)
+					log.Info("Recovered in root command", r)
 				}
-				log.Info("Closing in 15 seconds...")
-				time.Sleep(15 * time.Second)
 			}()
 
 			p := robotics.Platform(platform)

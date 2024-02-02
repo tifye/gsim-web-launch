@@ -1,29 +1,22 @@
 package main
 
 import (
-	"log"
+	"bufio"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/Tifufu/gsim-web-launch/cmd"
+	"github.com/charmbracelet/log"
 	"github.com/joho/godotenv"
 )
 
 func init() {
 	if err := godotenv.Load(`D:\Projects\_work\_pocs\gsim-web-launch\bin\.env`); err != nil {
-		log.Println("could not load environment file")
+		log.Error("could not load environment file")
 	}
 }
 
 func main() {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Println("Recovered in main", r)
-			time.Sleep(15 * time.Second)
-		}
-	}()
-
 	if strings.HasPrefix(os.Args[1], "gsim-web-launch:") {
 		input := strings.Split(os.Args[1], ":")[1]
 		parts := strings.Split(input, "/")
@@ -38,6 +31,9 @@ func main() {
 		os.Args = append(os.Args[:1], args...)
 	}
 
-	log.Println(os.Args)
+	log.Debug(os.Args)
 	cmd.Execute(os.Args[1:])
+
+	reader := bufio.NewReader(os.Stdin)
+	reader.ReadString('\n')
 }
