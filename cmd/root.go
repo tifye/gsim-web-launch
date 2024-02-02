@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/Tifufu/gsim-web-launch/cmd/cli"
 	"github.com/Tifufu/gsim-web-launch/cmd/registry"
 	"github.com/Tifufu/gsim-web-launch/pkg"
+	"github.com/Tifufu/gsim-web-launch/pkg/ext"
 	"github.com/Tifufu/gsim-web-launch/pkg/robotics"
 	"github.com/spf13/cobra"
 )
@@ -29,9 +31,13 @@ func newRootCommand(cli *cli.Cli) *cobra.Command {
 		Short: "",
 		Long:  "",
 		Run: func(cmd *cobra.Command, args []string) {
-			winMowerPath, err := downloadAndUnpackWinMower(platform, cli)
+			p := robotics.Platform(platform)
+			winMowerPath, err := downloadAndUnpackWinMower(p, cli)
 			if err != nil {
-				log.Fatalf("Failed to download and unpack WinMower: %s", err)
+				log.Printf("Failed to download and unpack WinMower: %s", err)
+				log.Printf("Closing in 15 seconds...")
+				time.Sleep(15 * time.Second)
+				return
 			}
 
 			gspPaths, err := downloadAndUnpackGSP(serialNumber, platform)
@@ -78,9 +84,12 @@ func init() {
 		log.Fatalf("Failed to create winmower dir: %s", err)
 	}
 
+	bRegistry := robotics.NewBundleRegistry("https://hqvrobotics.azure-api.net")
+
 	gsCli = &cli.Cli{
 		AppCacheDir:      cacheDir,
-		WinMowerRegistry: robotics.NewWinMowerRegistry(wmrCacheDir),
+		WinMowerRegistry: robotics.NewWinMowerRegistry(wmrCacheDir, bRegistry),
+		BundleRegistry:   bRegistry,
 	}
 
 	rootCmd = newRootCommand(gsCli)
@@ -95,67 +104,81 @@ func Execute(args []string) {
 	}
 }
 
-func downloadAndUnpackWinMower(platform string, gsCli *cli.Cli) (string, error) {
-	winMower, err := gsCli.WinMowerRegistry.GetCachedWinMower(robotics.Platform(platform), context.Background())
-	if err != nil || winMower == nil {
-		log.Printf("Failed to get cached WinMower: %s", err)
-	} else {
-		log.Printf("Found cached WinMower at %s", winMower.Path)
+func downloadAndUnpackWinMower(platform robotics.Platform, gsCli *cli.Cli) (string, error) {
+	winMower, err := gsCli.WinMowerRegistry.GetWinMower(platform, context.Background())
+	if err != nil {
+		return "", err
+	}
+	if winMower != nil {
 		return winMower.Path, nil
 	}
 
-	types, err := robotics.FetchBundleTypes()
-	if err != nil {
-		return "", err
-	}
-	log.Printf("Found %d bundle types\n", len(types))
+	return "", fmt.Errorf("no winmower found")
 
-	plat := robotics.Platform(platform)
-	plat.Set(platform)
-	types = robotics.FilterBundleTypes(types, plat)
-	if len(types) == 0 {
-		return "", fmt.Errorf("no bundle types found for platform %s", platform)
-	}
-	log.Printf("Found %d bundle types for platform %s\n", len(types), platform)
-	latestType := types[0]
-	log.Printf("Latest bundle type: %s\n", latestType.Name)
+	// winMower, err := gsCli.WinMowerRegistry.GetCachedWinMower(platform, context.Background())
+	// if err != nil || winMower == nil {
+	// 	log.Printf("Failed to get cached WinMower: %s", err)
+	// } else {
+	// 	log.Printf("Found cached WinMower at %s", winMower.Path)
+	// 	return winMower.Path, nil
+	// }
 
-	latestBuild, err := robotics.FetchLatestRelease(latestType.Name)
-	log.Printf("Latest build: %s\n", latestBuild.BlobUrl)
-	if err != nil {
-		return "", err
-	}
+	// types, err := gsCli.BundleRegistry.FetchBundleTypes(context.Background())
+	// if err != nil {
+	// 	return "", err
+	// }
+	// log.Printf("Found %d bundle types\n", len(types))
 
-	dir := filepath.Join(gsCli.AppCacheDir, "gsim/winmower", plat.String())
-	log.Printf("Downloading and unpacking WinMower to %s", dir)
-	err = pkg.DownloadAndUnpack(latestBuild.BlobUrl, dir)
-	log.Printf("Downloaded and unpacked WinMower to %s", dir)
-	if err != nil {
-		log.Printf("Failed to download and unpack WinMower: %s", err)
-		return "", err
-	}
+	// types = robotics.FilterBundleTypes(types, platform)
+	// if len(types) == 0 {
+	// 	return "", fmt.Errorf("no bundle types found for platform %s", platform)
+	// }
+	// log.Printf("Found %d bundle types for platform %s\n", len(types), platform)
 
-	var exePath string
-	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if filepath.Ext(path) == ".exe" {
-			exePath = path
-			return nil
-		}
-		return nil
-	})
-	if exePath == "" {
-		return "", fmt.Errorf("no exe found in %s", dir)
-	}
-	log.Printf("Found WinMower exe at %s", exePath)
+	// latestType := types[0]
+	// log.Printf("Latest bundle type: %s\n", latestType.Name)
 
-	return exePath, err
+	// latestBuild, err := gsCli.BundleRegistry.FetchLatestRelease(context.Background(), latestType.Name)
+	// log.Printf("Latest build: %s\n", latestBuild.BlobUrl)
+	// if err != nil {
+	// 	return "", err
+	// }
+
+	// dir := filepath.Join(gsCli.AppCacheDir, "gsim/winmower", platform.String())
+	// log.Printf("Downloading and unpacking WinMower to %s", dir)
+	// err = pkg.DownloadAndUnpack(latestBuild.BlobUrl, dir)
+	// log.Printf("Downloaded and unpacked WinMower to %s", dir)
+	// if err != nil {
+	// 	log.Printf("Failed to download and unpack WinMower: %s", err)
+	// 	return "", err
+	// }
+
+	// var exePath string
+	// err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	// 	if filepath.Ext(path) == ".exe" {
+	// 		exePath = path
+	// 		return nil
+	// 	}
+	// 	return nil
+	// })
+	// if exePath == "" {
+	// 	return "", fmt.Errorf("no exe found in %s", dir)
+	// }
+	// log.Printf("Found WinMower exe at %s", exePath)
+
+	// return exePath, err
 }
 
 func downloadAndUnpackGSP(serialNumber, platform string) (*robotics.GSPPaths, error) {
 	path := filepath.Join(testingDir, "gsp", "GSP_"+serialNumber)
 	baseUrl := os.Getenv("GSP_API")
 	endpoint := fmt.Sprintf("%s/packet/%s/%s", baseUrl, serialNumber, platform)
-	err := pkg.DownloadAndUnpack(endpoint, path)
+	req, err := http.NewRequest("GET", endpoint, nil)
+	robotics.AddTifAuthHeaders(req)
+	if err != nil {
+		return nil, err
+	}
+	err = ext.DownloadAndUnpack(req, path)
 	if err != nil {
 		return nil, err
 	}

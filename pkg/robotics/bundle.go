@@ -1,13 +1,18 @@
 package robotics
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
-	"time"
 )
+
+type BundleRegistry struct {
+	baseUrl string
+}
 
 type BundleType struct {
 	Id          string `json:"id"`
@@ -15,30 +20,27 @@ type BundleType struct {
 	Description string `json:"description"`
 }
 
-func FilterBundleTypes(types []BundleType, platform Platform) []BundleType {
-	var filtered []BundleType
-	subStr := "-" + string(platform) + "-Win"
-	for _, t := range types {
-		if strings.Contains(t.Name, subStr) {
-			filtered = append(filtered, t)
-		}
-	}
-	return filtered
+type Build struct {
+	Id      string `json:"id"`
+	BlobUrl string `json:"blob"`
 }
 
-func FetchBundleTypes() ([]BundleType, error) {
-	const url = "https://hqvrobotics.azure-api.net/bundles/types"
-	client := http.Client{
-		Timeout: time.Second * 2,
+func NewBundleRegistry(baseUrl string) *BundleRegistry {
+	return &BundleRegistry{
+		baseUrl: baseUrl,
 	}
+}
 
-	req, err := http.NewRequest("GET", url, nil)
+func (r *BundleRegistry) FetchBundleTypes(ctx context.Context) ([]BundleType, error) {
+	url := fmt.Sprintf("%s/bundles/types", r.baseUrl)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %v", err)
 	}
 	AddTifAuthHeaders(req)
 
-	resp, err := client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error sending request: %v", err)
 	}
@@ -59,4 +61,52 @@ func FetchBundleTypes() ([]BundleType, error) {
 	}
 
 	return bundleTypes, nil
+}
+
+func (r *BundleRegistry) FetchLatestRelease(ctx context.Context, bundleType string) (*Build, error) {
+	url := fmt.Sprintf("%s/bundles/indexes/%s?count=1", r.baseUrl, bundleType)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %v", err)
+	}
+	AddTifAuthHeaders(req)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error sending request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %v", err)
+	}
+
+	if resp.StatusCode > 299 {
+		return nil, fmt.Errorf("response failed with %s", resp.Status)
+	}
+
+	var builds []Build
+	if err = json.Unmarshal(body, &builds); err != nil {
+		return nil, fmt.Errorf("error unmarshalling response body: %v", err)
+	}
+
+	if len(builds) == 0 {
+		return nil, errors.New("no builds found")
+	}
+
+	builds[0].BlobUrl = fmt.Sprintf("%s/bundles/blob/%s", r.baseUrl, builds[0].BlobUrl)
+	return &builds[0], nil
+}
+
+func FilterBundleTypes(types []BundleType, platform Platform) []BundleType {
+	var filtered []BundleType
+	subStr := "-" + string(platform) + "-Win"
+	for _, t := range types {
+		if strings.Contains(t.Name, subStr) {
+			filtered = append(filtered, t)
+		}
+	}
+	return filtered
 }

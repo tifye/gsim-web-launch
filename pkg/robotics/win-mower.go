@@ -4,21 +4,79 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"log"
+	"net/http"
 	"path/filepath"
+
+	"github.com/Tifufu/gsim-web-launch/pkg/ext"
 )
 
 type WinMowerRegistry struct {
-	cacheDir string
+	cacheDir       string
+	bundleRegistry *BundleRegistry
 }
 
 type WinMower struct {
 	Path string
 }
 
-func NewWinMowerRegistry(cacheDir string) *WinMowerRegistry {
+func NewWinMowerRegistry(cacheDir string, bregsitry *BundleRegistry) *WinMowerRegistry {
 	return &WinMowerRegistry{
-		cacheDir: cacheDir,
+		bundleRegistry: bregsitry,
+		cacheDir:       cacheDir,
 	}
+}
+
+func (w *WinMowerRegistry) GetWinMower(platform Platform, ctx context.Context) (*WinMower, error) {
+	wm, err := w.GetCachedWinMower(platform, ctx)
+	if err != nil {
+		return nil, err
+	}
+	if wm != nil {
+		return wm, nil
+	}
+
+	btypes, err := w.bundleRegistry.FetchBundleTypes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("Found %d bundle types\n", len(btypes))
+
+	btypes = FilterBundleTypes(btypes, platform)
+	if len(btypes) == 0 {
+		return nil, fmt.Errorf("no bundle types found for platform %s", platform)
+	}
+	log.Printf("Found %d bundle types for platform %s\n", len(btypes), platform)
+
+	// Endpoint returns them sorted by date (i think)
+	latestType := btypes[0]
+	log.Printf("Latest bundle type: %s\n", latestType.Name)
+
+	latestBuild, err := w.bundleRegistry.FetchLatestRelease(ctx, latestType.Name)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("Latest build: %s\n", latestBuild.BlobUrl)
+
+	dir := filepath.Join(w.cacheDir, platform.String())
+	req, err := http.NewRequestWithContext(ctx, "GET", latestBuild.BlobUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+	AddTifAuthHeaders(req)
+	err = ext.DownloadAndUnpack(req, dir)
+	if err != nil {
+		return nil, err
+	}
+
+	wmPath, err := locateWinMowerExecutable(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	return &WinMower{
+		Path: wmPath,
+	}, nil
 }
 
 func (w *WinMowerRegistry) GetCachedWinMower(platform Platform, ctx context.Context) (*WinMower, error) {
@@ -33,7 +91,7 @@ func (w *WinMowerRegistry) GetCachedWinMower(platform Platform, ctx context.Cont
 		return nil, err
 	}
 	if wmDir == "" {
-		return nil, fmt.Errorf("no cached WinMower found for platform %s", platform)
+		return nil, nil
 	}
 
 	path, err := locateWinMowerExecutable(wmDir)

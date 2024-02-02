@@ -1,4 +1,4 @@
-package pkg
+package ext
 
 import (
 	"archive/zip"
@@ -9,17 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/Tifufu/gsim-web-launch/pkg/robotics"
 )
 
-func DownloadAndUnpack(url string, dest string) error {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return err
-	}
-	robotics.AddTifAuthHeaders(req)
-
+func DownloadAndUnpack(req *http.Request, dest string) error {
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Println(err)
