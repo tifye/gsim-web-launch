@@ -18,7 +18,6 @@ import (
 var (
 	serialNumber string
 	platform     string
-	testingDir   string = filepath.Join(`D:\Projects\_work\_pocs\gsim-web-launch\_vendor`)
 	gsCli        *cli.Cli
 	rootCmd      *cobra.Command
 )
