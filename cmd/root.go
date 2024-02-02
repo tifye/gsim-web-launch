@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -13,6 +12,8 @@ import (
 	"github.com/Tifufu/gsim-web-launch/pkg"
 	"github.com/Tifufu/gsim-web-launch/pkg/robotics"
 	"github.com/spf13/cobra"
+
+	"github.com/charmbracelet/log"
 )
 
 var (
@@ -30,39 +31,38 @@ func newRootCommand(cli *cli.Cli) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			defer func() {
 				if r := recover(); r != nil {
-					log.Println("Recovered in main", r)
+					log.Info("Recovered in main", r)
 					time.Sleep(15 * time.Second)
 				}
-				log.Printf("Closing in 15 seconds...")
+				log.Info("Closing in 15 seconds...")
 				time.Sleep(15 * time.Second)
 			}()
 
 			p := robotics.Platform(platform)
 			winMower, err := gsCli.WinMowerRegistry.GetWinMower(p, context.Background())
 			if err != nil {
-				log.Printf("Failed to get winmower: %s", err)
+				log.Error("Failed to get winmower", "err", err)
 				return
 			}
 			if winMower == nil {
-				log.Printf("No winmower found for platform %s", platform)
+				log.Error("No winmower found for platform", "platform", platform)
 				return
 			}
 
 			gspPaths, err := gsCli.GSPRegistry.GetGSP(serialNumber, platform)
 			if err != nil {
-				log.Printf("Failed to download and unpack GSP: %s", err)
+				log.Error("Failed to download and unpack GSP", "err", err)
 				return
 			}
-			log.Printf("\nMap: %s\nTestBundle: %s\n", gspPaths.Map, gspPaths.TestBundle)
 
-			fmt.Println("Launching winmower...")
+			log.Info("Launching winmower...")
 			pkg.LaunchWinMower(winMower.Path, platform)
 			time.Sleep(5 * time.Second)
 
-			fmt.Println("Launching test bundle...")
+			log.Info("Launching test bundle...")
 			pkg.RunTestBundle(gspPaths.TestBundle)
 
-			fmt.Println("Launching simulator...")
+			log.Info("Launching simulator...")
 			pkg.LaunchSimulator(gspPaths.Map)
 		},
 	}

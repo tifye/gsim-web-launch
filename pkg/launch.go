@@ -56,7 +56,6 @@ func LaunchWinMower(exePath, platform string) {
 		log.Fatalf("Failed to create winmower dir: %s", err)
 	}
 
-	//exePath := `D:\Projects\_work\_pocs\gsim-web-launch\_vendor\40.x_Main-App-P25-Win_master_build-240131_153656\40.x_Main-App-P25-Win_master_build-240131_153656.exe`
 	cmd := exec.Command("cmd.exe", "/C", "start", exePath)
 	cmd.Dir = wmDir
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: false}
