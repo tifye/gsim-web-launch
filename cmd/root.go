@@ -10,7 +10,6 @@ import (
 
 	"github.com/Tifufu/gsim-web-launch/cmd/cli"
 	"github.com/Tifufu/gsim-web-launch/cmd/registry"
-	"github.com/Tifufu/gsim-web-launch/pkg"
 	"github.com/Tifufu/gsim-web-launch/pkg/robotics"
 	"github.com/Tifufu/gsim-web-launch/pkg/runner"
 	"github.com/spf13/cobra"
@@ -101,10 +100,18 @@ func newRootCommand(cli *cli.Cli) *cobra.Command {
 				log.Error("Failed to start test bundle", "err", err)
 				return
 			}
-			//pkg.RunTestBundle(gspPaths.TestBundle)
 
 			log.Info("Launching simulator...")
-			pkg.LaunchSimulator(gspPaths.Map)
+			simPath := os.Getenv("SIM_PATH")
+			if simPath == "" {
+				log.Error("SIM_PATH not set")
+				return
+			}
+			err = runner.LaunchSimulator(simPath, gspPaths.Map)
+			if err != nil {
+				log.Error("Failed to launch simulator", "err", err)
+				return
+			}
 
 			reader := bufio.NewReader(os.Stdin)
 			reader.ReadString('\n')

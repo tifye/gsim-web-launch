@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	if err := godotenv.Load(`D:\Projects\_work\_pocs\gsim-web-launch\bin\.env`); err != nil {
+	if err := godotenv.Load(`D:\Projects\_work\_pocs\gsim-web-launch\bin\.env`, "./.env"); err != nil {
 		log.Error("could not load environment file")
 	}
 }
