@@ -83,7 +83,10 @@ func runRootCommand(cli *cli.Cli) {
 			log.Info("Recovered in root command", r)
 			reader := bufio.NewReader(os.Stdin)
 			reader.ReadString('\n')
+			return
 		}
+		reader := bufio.NewReader(os.Stdin)
+		reader.ReadString('\n')
 	}()
 
 	log.Info("Getting winmower...")
@@ -135,6 +138,13 @@ func runRootCommand(cli *cli.Cli) {
 	err = runner.LaunchSimulator(simPath, gspPaths.Map)
 	if err != nil {
 		log.Error("Failed to launch simulator", "err", err)
+		return
+	}
+
+	time.Sleep(5 * time.Second)
+	err = testRunner.Run(context.Background(), `D:\Projects\_work\GardenTVAutoLoader\GardenTVAutoloader\Resources\testscript.zip`, "-tcpAddress", "127.0.0.1:4250")
+	if err != nil {
+		log.Error("Failed to start test bundle", "err", err)
 		return
 	}
 
