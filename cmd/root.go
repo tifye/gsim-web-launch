@@ -31,68 +31,7 @@ func newRootCommand(cli *cli.Cli) *cobra.Command {
 		Short: "",
 		Long:  "",
 		Run: func(cmd *cobra.Command, args []string) {
-			defer func() {
-				if r := recover(); r != nil {
-					log.Info("Recovered in root command", r)
-					reader := bufio.NewReader(os.Stdin)
-					reader.ReadString('\n')
-				}
-			}()
-
-			log.Info("Getting winmower...")
-			p := robotics.Platform(platform)
-			winMower, err := gsCli.WinMowerRegistry.GetWinMower(p, context.Background())
-			if err != nil {
-				log.Error("Failed to get winmower", "err", err)
-				return
-			}
-			if winMower == nil {
-				log.Error("No winmower found for platform", "platform", platform)
-				return
-			}
-
-			gspPaths, err := gsCli.GSPRegistry.GetGSP(serialNumber, platform)
-			if err != nil {
-				log.Error("Failed to download and unpack GSP", "err", err)
-				return
-			}
-
-			wmRunner, err := createWinMowerRunner(cli.AppCacheDir, winMower)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-			log.Info("Starting winmower...")
-			err = wmRunner.Start(context.Background())
-			if err != nil {
-				log.Error("Failed to start winmower", "err", err)
-				return
-			}
-			defer wmRunner.Stop()
-			time.Sleep(3 * time.Second)
-
-			log.Info("Running test bundle...")
-			testRunner := createTestBundleRunner()
-			err = testRunner.Run(context.Background(), gspPaths.TestBundle, "-tcpAddress", "127.0.0.1:4250")
-			if err != nil {
-				log.Error("Failed to start test bundle", "err", err)
-				return
-			}
-
-			log.Info("Launching simulator...")
-			simPath := os.Getenv("SIM_PATH")
-			if simPath == "" {
-				log.Error("SIM_PATH not set")
-				return
-			}
-			err = runner.LaunchSimulator(simPath, gspPaths.Map)
-			if err != nil {
-				log.Error("Failed to launch simulator", "err", err)
-				return
-			}
-
-			reader := bufio.NewReader(os.Stdin)
-			reader.ReadString('\n')
+			runRootCommand(cli)
 		},
 	}
 	cmd.AddCommand(registry.RegistryCmd)
@@ -136,6 +75,71 @@ func Execute(args []string) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func runRootCommand(cli *cli.Cli) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Info("Recovered in root command", r)
+			reader := bufio.NewReader(os.Stdin)
+			reader.ReadString('\n')
+		}
+	}()
+
+	log.Info("Getting winmower...")
+	p := robotics.Platform(platform)
+	winMower, err := gsCli.WinMowerRegistry.GetWinMower(p, context.Background())
+	if err != nil {
+		log.Error("Failed to get winmower", "err", err)
+		return
+	}
+	if winMower == nil {
+		log.Error("No winmower found for platform", "platform", platform)
+		return
+	}
+
+	gspPaths, err := gsCli.GSPRegistry.GetGSP(serialNumber, platform)
+	if err != nil {
+		log.Error("Failed to download and unpack GSP", "err", err)
+		return
+	}
+
+	wmRunner, err := createWinMowerRunner(cli.AppCacheDir, winMower)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	log.Info("Starting winmower...")
+	err = wmRunner.Start(context.Background())
+	if err != nil {
+		log.Error("Failed to start winmower", "err", err)
+		return
+	}
+	defer wmRunner.Stop()
+	time.Sleep(3 * time.Second)
+
+	log.Info("Running test bundle...")
+	testRunner := createTestBundleRunner()
+	err = testRunner.Run(context.Background(), gspPaths.TestBundle, "-tcpAddress", "127.0.0.1:4250")
+	if err != nil {
+		log.Error("Failed to start test bundle", "err", err)
+		return
+	}
+
+	log.Info("Launching simulator...")
+	simPath := os.Getenv("SIM_PATH")
+	if simPath == "" {
+		log.Error("SIM_PATH not set")
+		return
+	}
+	err = runner.LaunchSimulator(simPath, gspPaths.Map)
+	if err != nil {
+		log.Error("Failed to launch simulator", "err", err)
+		return
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+	reader.ReadString('\n')
 }
 
 func createTestBundleRunner() *runner.TestBundleRunner {
