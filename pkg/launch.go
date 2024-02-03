@@ -1,11 +1,13 @@
 package pkg
 
 import (
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
+
+	"github.com/charmbracelet/log"
 )
 
 func RunTestBundle(bundlePath string) {
@@ -23,7 +25,8 @@ func RunTestBundle(bundlePath string) {
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
-		log.Fatalf("Failed to launch test bundle: %s", err)
+		log.Error("Failed to launch test bundle", "err", err)
+		panic(err)
 	}
 }
 
@@ -41,26 +44,55 @@ func LaunchSimulator(mapPath string) {
 	cmd := exec.Command(exePath, args...)
 	err := cmd.Start()
 	if err != nil {
-		log.Fatalf("Failed to launch simulator: %s", err)
+		log.Error("Failed to launch simulator", "err", err)
+		panic(err)
 	}
 }
 
 func LaunchWinMower(exePath, platform string) {
 	cachedir, err := os.UserCacheDir()
 	if err != nil {
-		log.Fatalf("Failed to get user cache dir: %s", err)
+		log.Error("Failed to get user cache dir", "err", err)
+		panic(err)
 	}
 	wmDir := filepath.Join(cachedir, "gsim/winmower-filesystems", platform)
 	err = os.MkdirAll(wmDir, 0755)
 	if err != nil {
-		log.Fatalf("Failed to create winmower dir: %s", err)
+		log.Error("Failed to create winmower dir", "err", err)
+		panic(err)
 	}
 
-	cmd := exec.Command("cmd.exe", "/C", "start", exePath)
+	cmd := exec.Command(exePath)
 	cmd.Dir = wmDir
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: false}
-	err = cmd.Run()
+
+	test := &Test{}
+	cmd.Stdout = test
+	cmd.Stderr = test
+	err = cmd.Start()
 	if err != nil {
-		log.Fatalf("Failed to launch winmower: %s", err)
+		log.Error("Failed to launch winmower", "err", err)
+		panic(err)
 	}
+}
+
+type Test struct {
+}
+
+func (t *Test) Write(bytes []byte) (int, error) {
+	str := string(bytes)
+	str = strings.TrimSuffix(str, "\n")
+	switch {
+	case strings.Contains(str, "ERROR"):
+		log.Error(str)
+	case strings.Contains(str, "WARNING"):
+		log.Warn(str)
+	case strings.Contains(str, "INFO"):
+		log.Info(str)
+	case strings.Contains(str, "DEBUG"):
+		log.Debug(str)
+	default:
+		log.Info(str)
+	}
+	return len(bytes), nil
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"os"
 	"strings"
 
@@ -33,7 +32,4 @@ func main() {
 
 	log.Debug(os.Args)
 	cmd.Execute(os.Args[1:])
-
-	reader := bufio.NewReader(os.Stdin)
-	reader.ReadString('\n')
 }
