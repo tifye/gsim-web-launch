@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/Tifufu/gsim-web-launch/cmd/clear"
 	"github.com/Tifufu/gsim-web-launch/cmd/cli"
 	"github.com/Tifufu/gsim-web-launch/cmd/registry"
 	"github.com/Tifufu/gsim-web-launch/pkg/robotics"
@@ -34,13 +35,16 @@ func newRootCommand(cli *cli.Cli) *cobra.Command {
 			runRootCommand(cli)
 		},
 	}
-	cmd.AddCommand(registry.RegistryCmd)
-
 	cmd.Flags().StringVarP(&serialNumber, "serial-number", "s", "", "Serial number of the device")
 	cmd.MarkFlagRequired("serial-number")
 
 	cmd.Flags().StringVarP(&platform, "platform", "p", "P25", "Platform of the device")
 	cmd.MarkFlagRequired("platform")
+
+	cmd.AddCommand(
+		registry.RegistryCmd,
+		clear.NewClearCommand(cli),
+	)
 	return cmd
 }
 
@@ -53,8 +57,9 @@ func Execute(args []string) {
 	if err != nil {
 		log.Fatalf("Failed to get user cache dir: %s", err)
 	}
+	appCacheDir := filepath.Join(cacheDir, "gsim")
 
-	wmrCacheDir := filepath.Join(cacheDir, "gsim/winmower")
+	wmrCacheDir := filepath.Join(appCacheDir, "winmower")
 	err = os.MkdirAll(wmrCacheDir, 0755)
 	if err != nil {
 		log.Fatalf("Failed to create winmower dir: %s", err)
@@ -62,10 +67,10 @@ func Execute(args []string) {
 
 	bRegistry := robotics.NewBundleRegistry("https://hqvrobotics.azure-api.net")
 	gsCli = &cli.Cli{
-		AppCacheDir:      cacheDir,
+		AppCacheDir:      appCacheDir,
 		WinMowerRegistry: robotics.NewWinMowerRegistry(wmrCacheDir, bRegistry),
 		BundleRegistry:   bRegistry,
-		GSPRegistry:      robotics.NewGSPRegistry(filepath.Join(cacheDir, "gsim/gsp"), os.Getenv("GSP_API")),
+		GSPRegistry:      robotics.NewGSPRegistry(filepath.Join(appCacheDir, "gsp"), os.Getenv("GSP_API")),
 	}
 
 	rootCmd = newRootCommand(gsCli)
@@ -159,7 +164,7 @@ func createTestBundleRunner() *runner.TestBundleRunner {
 		Prefix:          "TifConsole.Auto\t",
 	})
 	style := log.DefaultStyles()
-	style.Prefix = lipgloss.NewStyle().Foreground(lipgloss.Color("#f43f5e"))
+	style.Prefix = lipgloss.NewStyle().Foreground(lipgloss.Color("#3b82f6"))
 	logger.SetStyles(style)
 	testLogger := runner.NewTifConsoleLogger(logger)
 	testRunner := runner.NewTestBundleRunner(`C:\Users\demat\AppData\Local\TifApp\TifConsole.Auto.exe`, testLogger)
@@ -167,7 +172,7 @@ func createTestBundleRunner() *runner.TestBundleRunner {
 }
 
 func createWinMowerRunner(cacheDir string, winMower *robotics.WinMower) (*runner.WinMowerRunner, error) {
-	wmDir := filepath.Join(cacheDir, "gsim/winmower-filesystems", platform)
+	wmDir := filepath.Join(cacheDir, "winmower-filesystems", platform)
 	err := os.MkdirAll(wmDir, 0755)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create winmower dir: %w", err)

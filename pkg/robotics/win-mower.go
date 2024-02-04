@@ -12,7 +12,7 @@ import (
 )
 
 type WinMowerRegistry struct {
-	cacheDir       string
+	CacheDir       string
 	bundleRegistry *BundleRegistry
 }
 
@@ -23,7 +23,7 @@ type WinMower struct {
 func NewWinMowerRegistry(cacheDir string, bregsitry *BundleRegistry) *WinMowerRegistry {
 	return &WinMowerRegistry{
 		bundleRegistry: bregsitry,
-		cacheDir:       cacheDir,
+		CacheDir:       cacheDir,
 	}
 }
 
@@ -58,7 +58,7 @@ func (w *WinMowerRegistry) GetWinMower(platform Platform, ctx context.Context) (
 	}
 	log.Printf("Latest build: %s\n", latestBuild.BlobUrl)
 
-	dir := filepath.Join(w.cacheDir, platform.String())
+	dir := filepath.Join(w.CacheDir, platform.String())
 	req, err := http.NewRequestWithContext(ctx, "GET", latestBuild.BlobUrl, nil)
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func (w *WinMowerRegistry) GetWinMower(platform Platform, ctx context.Context) (
 
 func (w *WinMowerRegistry) GetCachedWinMower(platform Platform, ctx context.Context) (*WinMower, error) {
 	var wmDir string
-	err := filepath.WalkDir(w.cacheDir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(w.CacheDir, func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() && d.Name() == platform.String() {
 			wmDir = path
 		}
