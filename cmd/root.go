@@ -160,11 +160,19 @@ func runRootCommand(cli *cli.Cli) {
 func createTestBundleRunner() *runner.TestBundleRunner {
 	logger := log.NewWithOptions(os.Stdout, log.Options{
 		ReportCaller:    false,
-		ReportTimestamp: false,
-		Prefix:          "TifConsole.Auto\t",
+		ReportTimestamp: true,
+		TimeFormat:      time.TimeOnly,
+		Prefix:          "TifConsole.Auto",
 	})
+	tifColor := lipgloss.Color("#3b82f6")
 	style := log.DefaultStyles()
-	style.Prefix = lipgloss.NewStyle().Foreground(lipgloss.Color("#3b82f6"))
+	style.Prefix = lipgloss.NewStyle().Foreground(tifColor)
+	style.Timestamp = lipgloss.NewStyle().
+		BorderStyle(lipgloss.ThickBorder()).
+		BorderLeftBackground(tifColor).
+		BorderLeftForeground(tifColor).
+		BorderLeft(true).
+		PaddingLeft(1)
 	logger.SetStyles(style)
 	testLogger := runner.NewTifConsoleLogger(logger)
 	testRunner := runner.NewTestBundleRunner(`C:\Users\demat\AppData\Local\TifApp\TifConsole.Auto.exe`, testLogger)
@@ -179,11 +187,19 @@ func createWinMowerRunner(cacheDir string, winMower *robotics.WinMower) (*runner
 	}
 	logger := log.NewWithOptions(os.Stdout, log.Options{
 		ReportCaller:    false,
-		ReportTimestamp: false,
-		Prefix:          "WinMower\t",
+		ReportTimestamp: true,
+		TimeFormat:      time.TimeOnly,
+		Prefix:          "WinMower",
 	})
+	wmColor := lipgloss.Color("#8b5cf6")
 	style := log.DefaultStyles()
-	style.Prefix = lipgloss.NewStyle().Foreground(lipgloss.Color("#8b5cf6"))
+	style.Prefix = lipgloss.NewStyle().Foreground(wmColor)
+	style.Timestamp = lipgloss.NewStyle().
+		BorderStyle(lipgloss.ThickBorder()).
+		BorderLeftBackground(wmColor).
+		BorderLeftForeground(wmColor).
+		BorderLeft(true).
+		PaddingLeft(1)
 	logger.SetStyles(style)
 	wmLogger := runner.NewWinMowerLogger(logger)
 	wmRunner := runner.NewWinMowerRunner(wmDir, winMower.Path, wmLogger)

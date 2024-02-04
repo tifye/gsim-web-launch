@@ -42,6 +42,6 @@ func (r *TestBundleRunner) Run(ctx context.Context, bundlePath string, args ...s
 func (l *TifConsoleLogger) Write(bytes []byte) (int, error) {
 	str := string(bytes)
 	str = strings.TrimSuffix(str, "\n")
-	l.logger.Info(str)
+	l.logger.Print(str)
 	return len(bytes), nil
 }
