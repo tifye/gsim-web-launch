@@ -85,11 +85,9 @@ func Execute(args []string) {
 func runRootCommand(cli *cli.Cli) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Info("Recovered in root command", r)
-			reader := bufio.NewReader(os.Stdin)
-			reader.ReadString('\n')
-			return
+			log.Warn("Recovered in root command", r)
 		}
+		log.Info("Press enter to exit...")
 		reader := bufio.NewReader(os.Stdin)
 		reader.ReadString('\n')
 	}()
