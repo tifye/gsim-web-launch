@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
-	"log"
 	"net/http"
 	"path/filepath"
 
 	"github.com/Tifufu/gsim-web-launch/pkg/ext"
+	"github.com/charmbracelet/log"
 )
 
 type WinMowerRegistry struct {
@@ -33,6 +33,7 @@ func (w *WinMowerRegistry) GetWinMower(platform Platform, ctx context.Context) (
 		return nil, err
 	}
 	if wm != nil {
+		log.Info("Using cached winmower")
 		return wm, nil
 	}
 
@@ -40,23 +41,23 @@ func (w *WinMowerRegistry) GetWinMower(platform Platform, ctx context.Context) (
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("Found %d bundle types\n", len(btypes))
+	log.Infof("Found %d bundle types\n", len(btypes))
 
 	btypes = FilterBundleTypes(btypes, platform)
 	if len(btypes) == 0 {
 		return nil, fmt.Errorf("no bundle types found for platform %s", platform)
 	}
-	log.Printf("Found %d bundle types for platform %s\n", len(btypes), platform)
+	log.Infof("Found %d bundle types for platform %s\n", len(btypes), platform)
 
 	// Endpoint returns them sorted by date (i think)
 	latestType := btypes[0]
-	log.Printf("Latest bundle type: %s\n", latestType.Name)
+	log.Info("Latest bundle type: %s\n", latestType.Name)
 
 	latestBuild, err := w.bundleRegistry.FetchLatestRelease(ctx, latestType.Name)
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("Latest build: %s\n", latestBuild.BlobUrl)
+	log.Info("Latest build: %s\n", latestBuild.BlobUrl)
 
 	dir := filepath.Join(w.CacheDir, platform.String())
 	req, err := http.NewRequestWithContext(ctx, "GET", latestBuild.BlobUrl, nil)
@@ -64,6 +65,7 @@ func (w *WinMowerRegistry) GetWinMower(platform Platform, ctx context.Context) (
 		return nil, err
 	}
 	AddTifAuthHeaders(req)
+	log.Info("Downloading and unpacking winmower...")
 	err = ext.DownloadAndUnpack(req, dir)
 	if err != nil {
 		return nil, err

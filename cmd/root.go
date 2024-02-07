@@ -91,7 +91,7 @@ func runRootCommand(cli *cli.Cli) {
 		reader.ReadString('\n')
 	}()
 
-	log.Info("Getting winmower...")
+	log.Info("Preparing winmower...")
 	p := robotics.Platform(platform)
 	winMower, err := gsCli.WinMowerRegistry.GetWinMower(p, context.Background())
 	if err != nil {
@@ -103,18 +103,20 @@ func runRootCommand(cli *cli.Cli) {
 		return
 	}
 
+	log.Info("Fetching GSP...")
 	gspPaths, err := gsCli.GSPRegistry.GetGSP(serialNumber, platform)
 	if err != nil {
 		log.Error("Failed to download and unpack GSP", "err", err)
 		return
 	}
 
+	log.Info("Preparing simulator...")
 	simulator, err := gsCli.SimulatorRegistry.GetSimulator(context.Background())
 	if err != nil {
 		log.Error("Failed to get simulator", "err", err)
 		return
 	}
-	log.Info("Simulator path: ", simulator.Path)
+	log.Info("Using Simulator at ", simulator.Path)
 
 	wmRunner, err := createWinMowerRunner(cli.Config.GetString("directories.winMowerFileSystems"), winMower)
 	if err != nil {
@@ -145,6 +147,7 @@ func runRootCommand(cli *cli.Cli) {
 		return
 	}
 
+	log.Info("Running start trigger test bundle...")
 	err = testRunner.Run(context.Background(), `D:\Projects\_work\GardenTVAutoLoader\GardenTVAutoloader\Resources\testscript.zip`, "-tcpAddress", "127.0.0.1:4250")
 	if err != nil {
 		log.Error("Failed to start test bundle", "err", err)
