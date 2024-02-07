@@ -14,6 +14,7 @@ import (
 	"github.com/Tifufu/gsim-web-launch/pkg/robotics"
 	"github.com/Tifufu/gsim-web-launch/pkg/runner"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
@@ -49,28 +50,25 @@ func newRootCommand(cli *cli.Cli) *cobra.Command {
 }
 
 func init() {
+	initConfig()
 	cobra.MousetrapHelpText = ""
 }
 
 func Execute(args []string) {
-	cacheDir, err := os.UserCacheDir()
-	if err != nil {
-		log.Fatalf("Failed to get user cache dir: %s", err)
-	}
-	appCacheDir := filepath.Join(cacheDir, "gsim")
-
-	wmrCacheDir := filepath.Join(appCacheDir, "winmower")
-	err = os.MkdirAll(wmrCacheDir, 0755)
+	v := viper.GetViper()
+	wmDir := v.GetString("directories.winMowers")
+	err := os.MkdirAll(wmDir, 0755)
 	if err != nil {
 		log.Fatalf("Failed to create winmower dir: %s", err)
 	}
 
-	bRegistry := robotics.NewBundleRegistry("https://hqvrobotics.azure-api.net")
+	bRegistry := robotics.NewBundleRegistry(v.GetString("endpoints.bundleStorage"))
 	gsCli = &cli.Cli{
-		AppCacheDir:      appCacheDir,
-		WinMowerRegistry: robotics.NewWinMowerRegistry(wmrCacheDir, bRegistry),
+		Config:           v,
+		AppCacheDir:      v.GetString("directories.appCacheDir"),
+		WinMowerRegistry: robotics.NewWinMowerRegistry(wmDir, bRegistry),
 		BundleRegistry:   bRegistry,
-		GSPRegistry:      robotics.NewGSPRegistry(filepath.Join(appCacheDir, "gsp"), os.Getenv("GSP_API")),
+		GSPRegistry:      robotics.NewGSPRegistry(v.GetString("directories.gardenSimulatorPackets"), v.GetString("endpoints.gardenSimulatorPacket")),
 	}
 
 	rootCmd = newRootCommand(gsCli)
@@ -110,7 +108,7 @@ func runRootCommand(cli *cli.Cli) {
 		return
 	}
 
-	wmRunner, err := createWinMowerRunner(cli.AppCacheDir, winMower)
+	wmRunner, err := createWinMowerRunner(cli.Config.GetString("directories.winMowerFileSystems"), winMower)
 	if err != nil {
 		log.Error(err)
 		return
@@ -125,7 +123,7 @@ func runRootCommand(cli *cli.Cli) {
 	time.Sleep(3 * time.Second)
 
 	log.Info("Running test bundle...")
-	testRunner := createTestBundleRunner()
+	testRunner := createTestBundleRunner(gsCli.Config.GetString("programs.tifConsole"))
 	err = testRunner.Run(context.Background(), gspPaths.TestBundle, "-tcpAddress", "127.0.0.1:4250")
 	if err != nil {
 		log.Error("Failed to start test bundle", "err", err)
@@ -155,7 +153,7 @@ func runRootCommand(cli *cli.Cli) {
 	reader.ReadString('\n')
 }
 
-func createTestBundleRunner() *runner.TestBundleRunner {
+func createTestBundleRunner(tifConsolePath string) *runner.TestBundleRunner {
 	logger := log.NewWithOptions(os.Stdout, log.Options{
 		ReportCaller:    false,
 		ReportTimestamp: true,
@@ -173,12 +171,12 @@ func createTestBundleRunner() *runner.TestBundleRunner {
 		PaddingLeft(1)
 	logger.SetStyles(style)
 	testLogger := runner.NewTifConsoleLogger(logger)
-	testRunner := runner.NewTestBundleRunner(`C:\Users\demat\AppData\Local\TifApp\TifConsole.Auto.exe`, testLogger)
+	testRunner := runner.NewTestBundleRunner(tifConsolePath, testLogger)
 	return testRunner
 }
 
-func createWinMowerRunner(cacheDir string, winMower *robotics.WinMower) (*runner.WinMowerRunner, error) {
-	wmDir := filepath.Join(cacheDir, "winmower-filesystems", platform)
+func createWinMowerRunner(wmFsCacheDir string, winMower *robotics.WinMower) (*runner.WinMowerRunner, error) {
+	wmDir := filepath.Join(wmFsCacheDir, platform)
 	err := os.MkdirAll(wmDir, 0755)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create winmower dir: %w", err)
