@@ -145,7 +145,6 @@ func runRootCommand(cli *cli.Cli) {
 		return
 	}
 
-	time.Sleep(5 * time.Second)
 	err = testRunner.Run(context.Background(), `D:\Projects\_work\GardenTVAutoLoader\GardenTVAutoloader\Resources\testscript.zip`, "-tcpAddress", "127.0.0.1:4250")
 	if err != nil {
 		log.Error("Failed to start test bundle", "err", err)
