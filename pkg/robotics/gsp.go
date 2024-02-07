@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Tifufu/gsim-web-launch/pkg/ext"
+	"github.com/charmbracelet/log"
 )
 
 type GSPRegistry struct {
@@ -29,6 +30,15 @@ func NewGSPRegistry(cacheDir, baseUrl string) *GSPRegistry {
 }
 
 func (r *GSPRegistry) GetGSP(serialNumber, platform string) (*GSPPaths, error) {
+	gsp, err := r.GetGSPFromCache(serialNumber)
+	if err != nil {
+		return nil, err
+	}
+	if gsp != nil {
+		log.Info("Using cached GSP")
+		return gsp, nil
+	}
+
 	endpoint := fmt.Sprintf("%s/packet/%s/%s", r.baseUrl, serialNumber, platform)
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
@@ -42,12 +52,24 @@ func (r *GSPRegistry) GetGSP(serialNumber, platform string) (*GSPPaths, error) {
 		return nil, err
 	}
 
-	gsp, err := LocateGSPPaths(dir, serialNumber)
+	gsp, err = LocateGSPPaths(dir, serialNumber)
 	if err != nil {
 		return nil, err
 	}
 
 	return gsp, nil
+}
+
+func (r *GSPRegistry) GetGSPFromCache(serialNumber string) (*GSPPaths, error) {
+	dir := filepath.Join(r.cacheDir, serialNumber)
+	_, err := os.Stat(dir)
+	if err == nil {
+		return LocateGSPPaths(dir, serialNumber)
+	}
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	return nil, err
 }
 
 func LocateGSPPaths(dir string, serialNumber string) (*GSPPaths, error) {
