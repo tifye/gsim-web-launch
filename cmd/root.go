@@ -102,6 +102,7 @@ func runRootCommand(cli *cli.Cli) {
 		log.Error("No winmower found for platform", "platform", platform)
 		return
 	}
+	log.Infof("Using WinMower at %s", winMower.Path)
 
 	log.Info("Fetching GSP...")
 	gspPaths, err := gsCli.GSPRegistry.GetGSP(serialNumber, platform)
@@ -109,6 +110,7 @@ func runRootCommand(cli *cli.Cli) {
 		log.Error("Failed to download and unpack GSP", "err", err)
 		return
 	}
+	log.Infof("Using GSP at %s", gspPaths.Map)
 
 	log.Info("Preparing simulator...")
 	simulator, err := gsCli.SimulatorRegistry.GetSimulator(context.Background())
@@ -116,7 +118,7 @@ func runRootCommand(cli *cli.Cli) {
 		log.Error("Failed to get simulator", "err", err)
 		return
 	}
-	log.Info("Using Simulator at ", simulator.Path)
+	log.Infof("Using Simulator at %s", simulator.Path)
 
 	wmRunner, err := createWinMowerRunner(cli.Config.GetString("directories.winMowerFileSystems"), winMower)
 	if err != nil {
