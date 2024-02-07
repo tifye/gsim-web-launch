@@ -33,7 +33,7 @@ func (w *WinMowerRegistry) GetWinMower(platform Platform, ctx context.Context) (
 		return nil, err
 	}
 	if wm != nil {
-		log.Info("Using cached winmower")
+		log.Debug("Using cached winmower")
 		return wm, nil
 	}
 
@@ -41,23 +41,23 @@ func (w *WinMowerRegistry) GetWinMower(platform Platform, ctx context.Context) (
 	if err != nil {
 		return nil, err
 	}
-	log.Infof("Found %d bundle types\n", len(btypes))
+	log.Debugf("Found %d bundle types\n", len(btypes))
 
 	btypes = FilterBundleTypes(btypes, platform)
 	if len(btypes) == 0 {
 		return nil, fmt.Errorf("no bundle types found for platform %s", platform)
 	}
-	log.Infof("Found %d bundle types for platform %s\n", len(btypes), platform)
+	log.Debugf("Found %d bundle types for platform %s\n", len(btypes), platform)
 
 	// Endpoint returns them sorted by date (i think)
 	latestType := btypes[0]
-	log.Info("Latest bundle type: %s\n", latestType.Name)
+	log.Debugf("Latest bundle type: %s\n", latestType.Name)
 
 	latestBuild, err := w.bundleRegistry.FetchLatestRelease(ctx, latestType.Name)
 	if err != nil {
 		return nil, err
 	}
-	log.Info("Latest build: %s\n", latestBuild.BlobUrl)
+	log.Debugf("Latest build: %s\n", latestBuild.BlobUrl)
 
 	dir := filepath.Join(w.CacheDir, platform.String())
 	req, err := http.NewRequestWithContext(ctx, "GET", latestBuild.BlobUrl, nil)
@@ -65,7 +65,7 @@ func (w *WinMowerRegistry) GetWinMower(platform Platform, ctx context.Context) (
 		return nil, err
 	}
 	AddTifAuthHeaders(req)
-	log.Info("Downloading and unpacking winmower...")
+	log.Debug("Downloading and unpacking winmower...")
 	err = ext.DownloadAndUnpack(req, dir)
 	if err != nil {
 		return nil, err

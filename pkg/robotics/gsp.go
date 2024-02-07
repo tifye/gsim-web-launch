@@ -35,7 +35,7 @@ func (r *GSPRegistry) GetGSP(serialNumber, platform string) (*GSPPaths, error) {
 		return nil, err
 	}
 	if gsp != nil {
-		log.Info("Using cached GSP")
+		log.Debug("Using cached GSP")
 		return gsp, nil
 	}
 

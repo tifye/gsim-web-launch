@@ -33,23 +33,23 @@ func (s *SimulatorRegistry) GetSimulator(ctx context.Context) (*Simulator, error
 		return nil, err
 	}
 	if sim != nil {
-		log.Info("Using cached simulator")
+		log.Debug("Using cached simulator")
 		return sim, nil
 	}
 
-	log.Info("Fetching simulator...")
+	log.Debug("Fetching simulator...")
 	latestBuild, err := s.bundleRegistry.FetchLatestRelease(ctx, "GardenSimulator")
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("Latest Simulator build: %s\n", latestBuild.BlobUrl)
+	log.Debugf("Latest Simulator build: %s\n", latestBuild.BlobUrl)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", latestBuild.BlobUrl, nil)
 	if err != nil {
 		return nil, err
 	}
 	AddTifAuthHeaders(req)
-	log.Info("Downloading and unpacking simulator...")
+	log.Debug("Downloading and unpacking simulator...")
 	err = ext.DownloadAndUnpack(req, s.cacheDir)
 	if err != nil {
 		return nil, err
