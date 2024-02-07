@@ -64,11 +64,12 @@ func Execute(args []string) {
 
 	bRegistry := robotics.NewBundleRegistry(v.GetString("endpoints.bundleStorage"))
 	gsCli = &cli.Cli{
-		Config:           v,
-		AppCacheDir:      v.GetString("directories.appCacheDir"),
-		WinMowerRegistry: robotics.NewWinMowerRegistry(wmDir, bRegistry),
-		BundleRegistry:   bRegistry,
-		GSPRegistry:      robotics.NewGSPRegistry(v.GetString("directories.gardenSimulatorPackets"), v.GetString("endpoints.gardenSimulatorPacket")),
+		Config:            v,
+		AppCacheDir:       v.GetString("directories.appCacheDir"),
+		BundleRegistry:    bRegistry,
+		WinMowerRegistry:  robotics.NewWinMowerRegistry(wmDir, bRegistry),
+		SimulatorRegistry: robotics.NewSimulatorRegistry(v.GetString("directories.simulator"), bRegistry),
+		GSPRegistry:       robotics.NewGSPRegistry(v.GetString("directories.gardenSimulatorPackets"), v.GetString("endpoints.gardenSimulatorPacket")),
 	}
 
 	rootCmd = newRootCommand(gsCli)
@@ -108,6 +109,13 @@ func runRootCommand(cli *cli.Cli) {
 		return
 	}
 
+	simulator, err := gsCli.SimulatorRegistry.GetSimulator(context.Background())
+	if err != nil {
+		log.Error("Failed to get simulator", "err", err)
+		return
+	}
+	log.Info("Simulator path: ", simulator.Path)
+
 	wmRunner, err := createWinMowerRunner(cli.Config.GetString("directories.winMowerFileSystems"), winMower)
 	if err != nil {
 		log.Error(err)
@@ -131,12 +139,7 @@ func runRootCommand(cli *cli.Cli) {
 	}
 
 	log.Info("Launching simulator...")
-	simPath := os.Getenv("SIM_PATH")
-	if simPath == "" {
-		log.Error("SIM_PATH not set")
-		return
-	}
-	err = runner.LaunchSimulator(simPath, gspPaths.Map)
+	err = runner.LaunchSimulator(simulator.Path, gspPaths.Map)
 	if err != nil {
 		log.Error("Failed to launch simulator", "err", err)
 		return

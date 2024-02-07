@@ -6,10 +6,11 @@ import (
 )
 
 type Cli struct {
-	Config           *viper.Viper
-	AppCacheDir      string
-	TestingDir       string
-	WinMowerRegistry *robotics.WinMowerRegistry
-	BundleRegistry   *robotics.BundleRegistry
-	GSPRegistry      *robotics.GSPRegistry
+	Config            *viper.Viper
+	AppCacheDir       string
+	TestingDir        string
+	WinMowerRegistry  *robotics.WinMowerRegistry
+	SimulatorRegistry *robotics.SimulatorRegistry
+	BundleRegistry    *robotics.BundleRegistry
+	GSPRegistry       *robotics.GSPRegistry
 }

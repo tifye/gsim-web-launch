@@ -19,6 +19,7 @@ func setDefaults(cacheDir string) {
 	viper.SetDefault("directories.winMowers", filepath.Join(appCacheDir, "winmower"))
 	viper.SetDefault("directories.winMowerFileSystems", filepath.Join(appCacheDir, "winmower-filesystems"))
 	viper.SetDefault("directories.gardenSimulatorPackets", filepath.Join(appCacheDir, "gsp"))
+	viper.SetDefault("directories.simulator", filepath.Join(appCacheDir, "simulator"))
 
 	viper.SetDefault("simulator.toLogNow", false)
 	viper.SetDefault("simulator.screen.width", 1280)
